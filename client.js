@@ -21,6 +21,7 @@ socket.on('frame', (frame) => {
   });
 
   console.log("personCount = " + personCount);
+  console.log("carCount = " + carCount);
 });
 
 socket.on('done', () => {
