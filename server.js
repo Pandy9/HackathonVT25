@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
 
     socket.emit('frame', frames[index]);
     index++;
-  }, 1000);
+  }, 20);
 
   socket.on('disconnect', () => {
     clearInterval(intervalId);
