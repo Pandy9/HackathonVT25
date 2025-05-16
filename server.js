@@ -1,39 +1,48 @@
-const WebSocket = require('ws');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { Server } = require('socket.io');
 
 const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+const io = new Server(server, {
+  cors: {
+    origin: '*', // tillåt alla (ändra detta i produktion)
+  }
+});
 
-// Läs in frames en gång vid serverstart
+// Läs frames från JSON
 const framesPath = path.join(__dirname, '/vt25/file.json');
-const frames = JSON.parse(fs.readFileSync(framesPath, 'utf8'));
+let frames = [];
 
-wss.on('connection', (ws) => {
-  console.log('Ny klient ansluten');
+try {
+  frames = JSON.parse(fs.readFileSync(framesPath, 'utf8'));
+  console.log(`Läste in ${frames.length} frames`);
+} catch (err) {
+  console.error('Kunde inte läsa frames.json:', err);
+}
+
+io.on('connection', (socket) => {
+  console.log('Klient ansluten:', socket.id);
 
   let index = 0;
 
   const intervalId = setInterval(() => {
     if (index >= frames.length) {
+      socket.emit('done');
       clearInterval(intervalId);
-      ws.send(JSON.stringify({ done: true }));
       return;
     }
 
-    const frame = frames[index];
-    ws.send(JSON.stringify(frame));
+    socket.emit('frame', frames[index]);
     index++;
   }, 1000);
 
-  // Avsluta när klienten kopplar från
-  ws.on('close', () => {
+  socket.on('disconnect', () => {
     clearInterval(intervalId);
-    console.log('Klient frånkopplad');
+    console.log('Klient frånkopplad:', socket.id);
   });
 });
 
 server.listen(8080, () => {
-  console.log('WebSocket-server körs på ws://localhost:8080');
+  console.log('Socket.IO-server körs på http://localhost:8080');
 });
